@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>미국 주식 AI 자동 매매 시뮬레이터</title>
+  <!-- TradingView Lightweight Charts CDN -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+    h2 { margin-top: 0; color: #38bdf8; font-size: 1.25rem; }
+    #chart { width: 100%; height: 400px; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-box { background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; }
+    .stat-box span { font-size: 0.85rem; color: #94a3b8; display: block; }
+    .stat-box strong { font-size: 1.4rem; font-weight: bold; }
+    .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-start { background: #10b981; color: white; }
+    .btn-stop { background: #ef4444; color: white; }
+    .btn-reset { background: #64748b; color: white; }
+    button:hover { opacity: 0.9; }
+    .log-box { height: 250px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; background: #0f172a; padding: 12px; border-radius: 8px; }
+    .log-entry { margin-bottom: 6px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
+    .buy { color: #34d399; }
+    .sell { color: #f87171; }
+    .info { color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <h1 style="text-align: center; color: #38bdf8; margin-bottom: 30px;">🤖 US Stock Trading Bot Simulator</h1>
+
+  <div class="container">
+    <!-- 왼쪽: 차트 및 시뮬레이션 제어 -->
+    <div class="card">
+      <h2>실시간 시세 & 매매 지점 (NVDA 예시 모의 데이터)</h2>
+      <div id="chart"></div>
+      
+      <div style="margin-top: 20px;" class="controls">
+        <button id="btnStart" class="btn-start" onclick="startTrading()">자동 매매 시작</button>
+        <button id="btnStop" class="btn-stop" onclick="stopTrading()" disabled>일시 정지</button>
+        <button class="btn-reset" onclick="resetSim()">초기화 ($100)</button>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 대시보드 & 매매 로그 -->
+    <div>
+      <div class="card stats">
+        <div class="stat-box">
+          <span>총 자산 (Portfolio)</span>
+          <strong id="totalAsset" style="color: #38bdf8;">$100.00</strong>
+        </div>
+        <div class="stat-box">
+          <span>수익률 (ROI)</span>
+          <strong id="roi" style="color: #10b981;">0.00%</strong>
+        </div>
+        <div class="stat-box">
+          <span>현금 (Cash)</span>
+          <strong id="cash">$100.00</strong>
+        </div>
+        <div class="stat-box">
+          <span>보유 주식 (Shares)</span>
+          <strong id="shares">0 주</strong>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>전략 판단 및 매매 기록</h2>
+        <div class="log-box" id="logs">
+          <div class="log-entry info">[시스템] $100 모의 계좌 준비 완료. '자동 매매 시작'을 누르세요.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. 초기 자산 및 상태 설정 ---
+    let cash = 100;
+    let shares = 0;
+    let currentPrice = 100;
+    let priceHistory = [];
+    let isRunning = false;
+    let timer = null;
+    let day = 0;
+
+    // --- 2. TradingView 차트 생성 ---
+    const chartContainer = document.getElementById('chart');
+    const chart = LightweightCharts.createChart(chartContainer, {
+      layout: { backgroundColor: '#1e293b', textColor: '#94a3b8' },
+      grid: { vertLines: { color: '#334155' }, horzLines: { color: '#334155' } },
+      timeScale: { timeVisible: true, secondsVisible: false }
+    });
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
+    });
+
+    // --- 3. 매매 전략 (5일 이동평균선 기반) ---
+    function executeStrategy(closePrice) {
+      priceHistory.push(closePrice);
+      
+      // 최소 5개 데이터가 쌓여야 이동평균선(SMA) 산출 가능
+      if (priceHistory.length < 5) return;
+
+      const last5 = priceHistory.slice(-5);
+      const sma5 = last5.reduce((a, b) => a + b, 0) / 5;
+
+      // 💡 전략: 현재 가격이 5일 평균보다 1.5% 이상 높으면 매수, 낮으면 전량 매도
+      if (closePrice > sma5 * 1.015 && cash >= closePrice) {
+        // 매수 로직
+        const qtyToBuy = Math.floor(cash / closePrice);
+        if (qtyToBuy > 0) {
+          const cost = qtyToBuy * closePrice;
+          cash -= cost;
+          shares += qtyToBuy;
+          log(`[매수] $${closePrice.toFixed(2)}에 ${qtyToBuy}주 매수 완료!`, 'buy');
+        }
+      } else if (closePrice < sma5 * 0.985 && shares > 0) {
+        // 매도 로직
+        const revenue = shares * closePrice;
+        cash += revenue;
+        log(`[매도] $${closePrice.toFixed(2)}에 ${shares}주 전량 매도 완료!`, 'sell');
+        shares = 0;
+      }
+    }
+
+    // --- 4. 시뮬레이션 루프 (주가 변동 생성) ---
+    function tick() {
+      day++;
+      // -3% ~ +3.2% 범위의 주가 변동성 랜덤 생성
+      const volatility = (Math.random() - 0.48) * 0.06;
+      const open = currentPrice;
+      const close = Math.max(10, open * (1 + volatility));
+      const high = Math.max(open, close) * (1 + Math.random() * 0.01);
+      const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+      
+      currentPrice = close;
+
+      // 차트 데이터 추가
+      const timeStr = `2026-01-${day < 10 ? '0' + day : day}`;
+      candleSeries.update({ time: timeStr, open, high, low, close });
+
+      // 매매 로직 판단
+      executeStrategy(close);
+
+      // UI 갱신
+      updateUI();
+
+      if (day >= 30) {
+        stopTrading();
+        log(`[종료] 30일 시뮬레이션이 완료되었습니다.`, 'info');
+      }
+    }
+
+    function updateUI() {
+      const totalAsset = cash + (shares * currentPrice);
+      const roi = ((totalAsset - 100) / 100) * 100;
+
+      document.getElementById('cash').innerText = `$${cash.toFixed(2)}`;
+      document.getElementById('shares').innerText = `${shares} 주`;
+      document.getElementById('totalAsset').innerText = `$${totalAsset.toFixed(2)}`;
+      
+      const roiEl = document.getElementById('roi');
+      roiEl.innerText = `${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`;
+      roiEl.style.color = roi >= 0 ? '#10b981' : '#ef4444';
+    }
+
+    function log(msg, type) {
+      const logBox = document.getElementById('logs');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.innerText = `Day ${day}: ${msg}`;
+      logBox.prepend(entry);
+    }
+
+    function startTrading() {
+      if (isRunning) return;
+      isRunning = true;
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      log('[알림] 자동 매매 루프 시작', 'info');
+      timer = setInterval(tick, 1000); // 1초마다 1일 흐름
+    }
+
+    function stopTrading() {
+      isRunning = false;
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+      clearInterval(timer);
+      log('[알림] 자동 매매 일시 정지', 'info');
+    }
+
+    function resetSim() {
+      stopTrading();
+      cash = 100;
+      shares = 0;
+      currentPrice = 100;
+      priceHistory = [];
+      day = 0;
+      document.getElementById('logs').innerHTML = '';
+      log('[시스템] 초기화 완료 ($100)', 'info');
+      updateUI();
+    }
+  </script>
+</body>
+</html>
