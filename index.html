@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>US Infinite Scalper Bot (All Stocks & ETFs)</title>
+  <title>US Infinite Scalper Bot</title>
   <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0f172a; color: #f8fafc; padding-bottom: 20px; }
 
-    header { background: #1e293b; padding: 15px; text-align: center; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 100; }
+    header { background: #1e293b; padding: 12px; text-align: center; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 100; }
     header h1 { font-size: 1rem; color: #38bdf8; }
 
-    .tab-bar { display: flex; background: #1e293b; margin-bottom: 15px; border-bottom: 1px solid #334155; }
+    .tab-bar { display: flex; background: #1e293b; margin-bottom: 12px; border-bottom: 1px solid #334155; }
     .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: #94a3b8; font-weight: bold; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid transparent; }
     .tab-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; background: #0f172a; }
 
@@ -38,10 +38,10 @@
     .table th, .table td { padding: 8px; border-bottom: 1px solid #334155; }
     .table th { color: #94a3b8; }
 
-    .log-box { height: 350px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; background: #0f172a; padding: 10px; border-radius: 6px; }
+    .log-box { height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; background: #0f172a; padding: 10px; border-radius: 6px; }
     .log-entry { margin-bottom: 5px; border-bottom: 1px solid #1e293b; padding-bottom: 3px; }
-    .buy { color: #34d399; }
-    .sell { color: #f87171; }
+    .buy { color: #34d399; font-weight: bold; }
+    .sell { color: #f87171; font-weight: bold; }
     .info { color: #38bdf8; }
     .scanner { color: #fbbf24; }
 
@@ -51,13 +51,13 @@
 <body>
 
   <header>
-    <h1>🌐 수만 개 종목 & 레버리지/잡주 단타 봇</h1>
+    <h1>⚡ 미국 전 종목 초단타 매매 봇</h1>
   </header>
 
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('chartTab', this)">실시간 스캔 & 차트</button>
-    <button class="tab-btn" onclick="switchTab('portfolioTab', this)">포트폴리오</button>
-    <button class="tab-btn" onclick="switchTab('logTab', this)">매매 피드</button>
+    <button class="tab-btn active" onclick="switchTab('chartTab', this)">실시간 차트</button>
+    <button class="tab-btn" onclick="switchTab('portfolioTab', this)">내 계좌 정보</button>
+    <button class="tab-btn" onclick="switchTab('logTab', this)">매매 기록</button>
   </div>
 
   <div class="container">
@@ -66,10 +66,9 @@
     <div id="chartTab" class="tab-content active">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 0.8rem; color: #fbbf24;" id="scanningStatus">🔍 시장 수만 개 종목 스캐닝 중...</span>
+          <span style="font-size: 0.75rem; color: #fbbf24;" id="scanningStatus">🔍 봇 대기 중...</span>
           <select id="stockSelect" onchange="changeChartStock()" style="background:#0f172a; color:#fff; padding:4px 8px; border-radius:4px; border:1px solid #334155; font-size:0.8rem;">
-            <option value="TQQQ">TQQQ (나스닥 3배 레버리지)</option>
-            <option value="SOXL">SOXL (반도체 3배 레버리지)</option>
+            <!-- JS에서 종목 자동 추가 -->
           </select>
         </div>
         <div id="chart"></div>
@@ -77,7 +76,7 @@
 
       <div class="card">
         <div class="controls">
-          <button id="btnStart" class="btn btn-start" onclick="startTrading()">전체 시장 단타 시작</button>
+          <button id="btnStart" class="btn btn-start" onclick="startTrading()">단타 시작</button>
           <button id="btnStop" class="btn btn-stop" onclick="stopTrading()" disabled>정지</button>
           <button class="btn btn-reset" onclick="resetSim()">초기화</button>
         </div>
@@ -106,11 +105,11 @@
       </div>
 
       <div class="card">
-        <h3 style="font-size: 0.9rem; margin-bottom: 8px; color: #94a3b8;">현재 보유 중인 종목 리스트</h3>
+        <h3 style="font-size: 0.85rem; margin-bottom: 8px; color: #94a3b8;">현재 보유 종목 리스트</h3>
         <table class="table">
           <thead>
             <tr>
-              <th>종목코드</th>
+              <th>종목</th>
               <th>수량</th>
               <th>평단가</th>
               <th>현재가</th>
@@ -123,11 +122,11 @@
       </div>
     </div>
 
-    <!-- 3. 로그 탭 -->
+    <!-- 3. 매매 기록 탭 -->
     <div id="logTab" class="tab-content">
       <div class="card">
         <div class="log-box" id="logs">
-          <div class="log-entry info">[시스템] API Key 연동 완료. 수만 개 미국 주식/레버리지/ETF 스캔 대기 중.</div>
+          <div class="log-entry info">[시스템] $100 모의 계좌 세팅 완료. '단타 시작' 버튼을 누르세요.</div>
         </div>
       </div>
     </div>
@@ -135,34 +134,25 @@
   </div>
 
   <script>
-    const API_KEY = 'd9gcac9r01qq6535mal0d9gcac9r01qq6535malg';
-
-    // 미국 시장의 주요 레버리지, ETF, 기술주 및 가상의 수만 가지 잡주 풀 구성
-    const dynamicPool = [
-      "TQQQ", "SQQQ", "SOXL", "SOXS", "NVDA", "TSLA", "AAPL", "AMZN", "MSFT", 
-      "PLTR", "COIN", "MARA", "IONQ", "NIO", "AMD", "META", "GOOGL", "SPY", "QQQ",
-      "UPST", "RIVN", "LCID", "GME", "AMC", "BITF", "HUT", "MSTU", "CONL"
-    ];
-
-    // 실시간 관리되는 종목 데이터 객체
+    // 미국 3배 레버리지 ETF, 잡주, 대형주 통합 데이터
+    const pool = ["TQQQ", "SOXL", "SQQQ", "NVDA", "TSLA", "PLTR", "AMZN", "MSFT", "AMD", "COIN", "MARA"];
     let marketData = {};
     let selectedStock = "TQQQ";
     let cash = 100;
     let isRunning = false;
     let timer = null;
-    let tickCount = 0;
+    let currentTime = Math.floor(Date.now() / 1000);
 
-    // 초기 종목 데이터 생성 (레버리지/잡주 특성에 맞는 변동성 부여)
-    dynamicPool.forEach(sym => {
+    // 종목 초기화
+    pool.forEach(sym => {
       marketData[sym] = {
-        price: Math.random() * 50 + 10, // 랜덤 초기 가격
-        history: [],
+        price: 20 + Math.random() * 80,
         shares: 0,
-        avgPrice: 0,
-        leverageFactor: sym.includes('3') ? 2.5 : 1.0 // 3배 레버리지는 변동성 극대화
+        avgPrice: 0
       };
     });
 
+    // 차트 생성
     const chartContainer = document.getElementById('chart');
     const chart = LightweightCharts.createChart(chartContainer, {
       layout: { backgroundColor: '#1e293b', textColor: '#94a3b8' },
@@ -173,64 +163,59 @@
       upColor: '#10b981', downColor: '#ef4444', borderVisible: false
     });
 
-    window.addEventListener('resize', () => {
-      chart.resize(chartContainer.clientWidth, 260);
-    });
+    // 드롭다운 채우기
+    const selectEl = document.getElementById('stockSelect');
+    selectEl.innerHTML = pool.map(s => `<option value="${s}">${s}</option>`).join('');
 
-    // 💡 수만 개 종목 스캔 및 초단타 알고리즘
-    function scanAndTrade() {
-      tickCount++;
-      const timeStamp = Math.floor(Date.now() / 1000);
+    // 초단타 실행 매직 루프
+    function tick() {
+      currentTime += 5; // 5초씩 시간 흐름
 
-      // 매 틱마다 랜덤하게 종목들을 스캔하여 거래 기회 포착
-      dynamicPool.forEach(sym => {
+      // 매 1초마다 무작위 1~2개 종목을 타겟으로 매매 발생시킴
+      const targetSym = pool[Math.floor(Math.random() * pool.length)];
+      
+      pool.forEach(sym => {
         const stock = marketData[sym];
-        // 레버리지 및 잡주 특유의 큰 폭의 등락 시뮬레이션 (-4% ~ +4.2%)
-        const randomVol = (Math.random() - 0.49) * 0.08 * stock.leverageFactor;
+        // -3% ~ +3% 가격 변동
+        const change = (Math.random() - 0.49) * 0.06;
         const open = stock.price;
-        const close = Math.max(1, open * (1 + randomVol));
-        const high = Math.max(open, close) * 1.005;
-        const low = Math.min(open, close) * 0.995;
+        const close = Math.max(2, open * (1 + change));
+        const high = Math.max(open, close) * 1.002;
+        const low = Math.min(open, close) * 0.998;
 
         stock.price = close;
-        stock.history.push(close);
 
-        // 단타 매매 전략 (급락 시 매수, 익절/손절)
-        if (stock.history.length >= 3) {
-          const prev = stock.history[stock.history.length - 2];
-          const dropRate = (close - prev) / prev;
-
-          // 1. 매수: 가격이 순간적으로 1.5피트 이상 급락했고 현금이 있다면 분할 매수
-          if (dropRate < -0.018 && cash >= close * 2) {
-            const qty = Math.floor((cash * 0.3) / close) || 1;
-            const totalCost = (stock.shares * stock.avgPrice) + (qty * close);
-            stock.shares += qty;
-            stock.avgPrice = totalCost / stock.shares;
-            cash -= qty * close;
-            log(`[매수포착] ${sym} ${qty}주 매수 완료 ($${close.toFixed(2)})`, 'buy');
-          } 
-          // 2. 매도: 평단가 대비 +2% 수익 혹은 -1.2% 손절
-          else if (stock.shares > 0) {
-            const pnl = (close - stock.avgPrice) / stock.avgPrice;
-            if (pnl >= 0.02 || pnl <= -0.012) {
-              cash += stock.shares * close;
-              log(`[매도완료] ${sym} ${stock.shares}주 청산 (수익률: ${(pnl*100).toFixed(1)}%)`, 'sell');
-              stock.shares = 0;
-              stock.avgPrice = 0;
-            }
-          }
-        }
-
-        // 현재 보고 있는 차트 종목 업데이트
+        // 선택된 차트 갱신
         if (sym === selectedStock) {
-          candleSeries.update({ time: timeStamp + tickCount, open, high, low, close });
+          candleSeries.update({ time: currentTime, open, high, low, close });
         }
       });
 
-      // UI 스캔 현황 메시지 변경
-      const randomScannedSym = dynamicPool[Math.floor(Math.random() * dynamicPool.length)];
-      document.getElementById('scanningStatus').innerText = `🔍 스캔중: ${randomScannedSym} 외 ${dynamicPool.length}개 종목 분석`;
+      // 💥 적극적인 매수/매도 로직
+      const targetStock = marketData[targetSym];
+      
+      // 1. 매수: 현금이 있고 보유하지 않았거나 추가매수 조건이면 확정 매수!
+      if (cash >= targetStock.price && (targetStock.shares === 0 || Math.random() < 0.3)) {
+        const buyQty = Math.floor((cash * 0.35) / targetStock.price) || 1;
+        if (cash >= buyQty * targetStock.price) {
+          const totalCost = (targetStock.shares * targetStock.avgPrice) + (buyQty * targetStock.price);
+          targetStock.shares += buyQty;
+          targetStock.avgPrice = totalCost / targetStock.shares;
+          cash -= buyQty * targetStock.price;
+          log(`[매수] ${targetSym} ${buyQty}주 @ $${targetStock.price.toFixed(2)}`, 'buy');
+        }
+      } 
+      // 2. 매도: 보유한 종목 중 하나를 랜덤하게 익절/손절 청산
+      else if (targetStock.shares > 0 && Math.random() < 0.5) {
+        const profit = ((targetStock.price - targetStock.avgPrice) / targetStock.avgPrice) * 100;
+        const revenue = targetStock.shares * targetStock.price;
+        cash += revenue;
+        log(`[매도] ${targetSym} ${targetStock.shares}주 청산 (수익률: ${profit >= 0 ? '+' : ''}${profit.toFixed(1)}%)`, 'sell');
+        targetStock.shares = 0;
+        targetStock.avgPrice = 0;
+      }
 
+      document.getElementById('scanningStatus').innerText = `⚡ 분석중: ${targetSym} (실시간 단타 수행 중)`;
       updateUI();
     }
 
@@ -239,7 +224,7 @@
       let rows = '';
       let holdingCnt = 0;
 
-      dynamicPool.forEach(sym => {
+      pool.forEach(sym => {
         const s = marketData[sym];
         stockVal += s.shares * s.price;
         if (s.shares > 0) {
@@ -273,14 +258,14 @@
     function changeChartStock() {
       selectedStock = document.getElementById('stockSelect').value;
       candleSeries.setData([]);
-      log(`[차트변경] 모니터링 화면이 ${selectedStock} (으)로 변경되었습니다.`, 'info');
+      log(`[차트변경] ${selectedStock} 차트로 전환`, 'info');
     }
 
     function log(msg, type) {
       const box = document.getElementById('logs');
       const div = document.createElement('div');
       div.className = `log-entry ${type}`;
-      div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      div.innerText = msg;
       box.prepend(div);
     }
 
@@ -289,8 +274,8 @@
       isRunning = true;
       document.getElementById('btnStart').disabled = true;
       document.getElementById('btnStop').disabled = false;
-      log('[봇실동] 미국 레버리지 및 전 종목 스캘핑 알고리즘 가동 시작!', 'scanner');
-      timer = setInterval(scanAndTrade, 1000);
+      log('[가동] 초단타 스캘핑 알고리즘 실동!', 'scanner');
+      timer = setInterval(tick, 1000);
     }
 
     function stopTrading() {
@@ -298,26 +283,21 @@
       document.getElementById('btnStart').disabled = false;
       document.getElementById('btnStop').disabled = true;
       clearInterval(timer);
-      log('[봇정지] 자동 매매 일시 정지.', 'info');
+      log('[정지] 자동 매매 정지됨', 'info');
     }
 
     function resetSim() {
       stopTrading();
       cash = 100;
-      dynamicPool.forEach(sym => {
+      pool.forEach(sym => {
         marketData[sym].shares = 0;
         marketData[sym].avgPrice = 0;
-        marketData[sym].history = [];
       });
       document.getElementById('logs').innerHTML = '';
       candleSeries.setData([]);
-      log('[초기화] 모의 자산 $100 초기화 완료.', 'info');
+      log('[초기화] $100 초기화 완료', 'info');
       updateUI();
     }
-
-    // 셀렉트 박스 자동 채우기
-    const selectEl = document.getElementById('stockSelect');
-    selectEl.innerHTML = dynamicPool.map(s => `<option value="${s}">${s}</option>`).join('');
   </script>
 </body>
 </html>
